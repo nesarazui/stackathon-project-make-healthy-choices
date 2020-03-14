@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { Image, Platform, StyleSheet, Text, TouchableOpacity, View, TextInput, Button } from 'react-native';
+import { Image, Platform, StyleSheet, Text, TouchableOpacity, View, TextInput, Button, Picker } from 'react-native';
 import { ScrollView } from 'react-native-gesture-handler';
 import * as WebBrowser from 'expo-web-browser';
 import { Dropdown } from 'react-native-material-dropdown'
@@ -7,22 +7,67 @@ import { Dropdown } from 'react-native-material-dropdown'
 import { MonoText } from '../components/StyledText';
 import { Post } from '../components/Post'
 import { render } from 'react-dom';
-import { TestComponent } from './../components/AppComponents';
+import axios from 'axios'
+// import { TestComponent } from './../components/AppComponents';
 
 export default class HomeScreen extends React.Component {
   constructor () {
     super()
-    this.state = {food: ''}
+    this.state = {food: 'French Fries', nutritionalInfo: []}
+    this.onPress = this.onPress.bind(this)
+    this.fetchNutritionalInfo = this.fetchNutritionalInfo.bind(this)
   }
 
   onPress (event) {
     event.preventDefault()
-    alert(`Fetching Healthy Alternative`)
-    this.props.fetchHealthyAlt(this.state.food)
+    alert(`Fetching Nutritional Info`)
+    //console.log('*****', this.state)
+    this.fetchNutritionalInfo(this.state.food)
+  }
+
+  onPressHealthy (event) {
+    event.preventDefault()
+    alert(`Suggesting Healthy Alternative`)
+    //console.log('*****', this.state)
+    //this.fetchNutritionalInfo(this.state.food)
+  }
+
+  async fetchNutritionalInfo (food) {
+    const { data } = await axios.post('https://trackapi.nutritionix.com/v2/natural/nutrients', {'query': food}, {headers: {'x-app-id': '05209a10', 'x-app-key':  'ed8f2147c7d313a1a88bc4ca30ec0848', 'x-remote-user-id': 0}})
+    //console.log('RESPONSE: ', data)
+    this.setState({...this.state, nutritionalInfo: data.foods[0]})
+    console.log('NUTRITION INFO FROM API: ', this.state.nutritionalInfo)
+    this.renderNutrionalInfo()
+  }
+
+  renderNutrionalInfo () {
+    console.log("DID THIS GET CALLED", this.state.nutritionalInfo)
+    console.log('TYPE OF: ', typeof(this.state.nutritionalInfo), this.state.nutritionalInfo.food_name, this.state.food)
+    if(this.state.nutritionalInfo.nf_calories) {
+      console.log('is this truthy')
+        return (
+          <View>
+          <Text>
+            You are craving: {this.state.nutritionalInfo.food_name}
+            Total Calories: {this.state.nutritionalInfo.nf_calories}
+            Sodium: {this.state.nutritionalInfo.nf_sodium}
+            Sugars: {this.state.nutritionalInfo.nf_sugars}
+            Potassium: {this.state.nutritionalInfo.nf_potassium}
+          </Text>
+
+          <Button
+            title="Healthier Alternative" 
+            onPress={this.onPressHealthy}
+          />
+          </View>
+        )
+      }
   }
 
   render() {
-  // let data = [{value: 'French Fries'}, {value: 'Cakes'}]
+
+    //console.log('*****', this.state)
+  let data = [{value: 'French Fries'}, {value: 'Chocolate Cake'}, {value: 'Pie'}, {value: 'Chicken Wings'}]
 
     return (
       <View style={styles.container}>
@@ -40,8 +85,6 @@ export default class HomeScreen extends React.Component {
   
           <View style={styles.getStartedContainer}>
             <DevelopmentModeNotice />
-
-            <TestComponent />
   
             <Text style={styles.getStartedText}>Make Healthy Choices!</Text>
   
@@ -50,47 +93,62 @@ export default class HomeScreen extends React.Component {
             </View>
   
             <Text style={styles.getStartedText}>
-              WHAT ARE YOU CRAVING TODAY??
+              Select your craving below
             </Text>
 
-            <View>
+            {/* <View>
               <TextInput 
                 style={{height: 40}}
                 placeholder="Type here!"
                 onChangeText={(food) => this.setState({food})}
                 value={this.state.food}
               />
-            </View>
+            </View> */}
+{/* 
+            <Dropdown 
+              label='Cravings'
+              data={data}
+            /> */}
+
+            <Picker
+              onValueChange={(itemValue, index) => {
+                //console.log('???', this.state.food)
+                this.setState({...this.state, food: itemValue})
+              }}
+            >
+
+              {data.map((food, index) => {
+                return (<Picker.Item key={index} label={food.value} value={food.value} />)
+              })}
+            </Picker>
             
             <View styles={styles.container}>
               <Post />
             </View>
 
             <Button
-              title="Give Me A Healthier Alternative" 
+              title="What's the Damage" 
               onPress={this.onPress}
             />
 
-            {/* <Dropdown 
-              label='Cravings'
-              data={data}
-              /> */}
+            <Text>{this.renderNutrionalInfo()}</Text>
+
           </View>
   
-          <View style={styles.helpContainer}>
+          {/* <View style={styles.helpContainer}>
             <TouchableOpacity onPress={handleHelpPress} style={styles.helpLink}>
               <Text style={styles.helpLinkText}>Help, it didn’t automatically reload!</Text>
             </TouchableOpacity>
-          </View>
+          </View> */}
         </ScrollView>
   
-        <View style={styles.tabBarInfoContainer}>
+        {/* <View style={styles.tabBarInfoContainer}>
           <Text style={styles.tabBarInfoText}>This is a tab bar. You can edit it in:</Text>
   
           <View style={[styles.codeHighlightContainer, styles.navigationFilename]}>
             <MonoText style={styles.codeHighlightText}>navigation/BottomTabNavigator.js</MonoText>
           </View>
-        </View>
+        </View> */}
       </View>
     );
   }
