@@ -1,282 +1,283 @@
 import * as React from 'react';
-import { Image, Platform, StyleSheet, Text, TouchableOpacity, View, TextInput, Button, Picker } from 'react-native';
+import { ImageBackground, StyleSheet, Text, View, Picker, Dimensions } from 'react-native';
+import { Button } from 'react-native-elements';
 import { ScrollView } from 'react-native-gesture-handler';
-import * as WebBrowser from 'expo-web-browser';
-import { Dropdown } from 'react-native-material-dropdown'
-
-import { MonoText } from '../components/StyledText';
-import { Post } from '../components/Post'
-import { render } from 'react-dom';
 import axios from 'axios'
-// import { TestComponent } from './../components/AppComponents';
 
 export default class HomeScreen extends React.Component {
   constructor () {
     super()
-    this.state = {food: 'French Fries', nutritionalInfo: []}
+    this.state = {food: 'French Fries', nutritionalInfo: [], healthyAltInfo: [], allUnhealthy: [], category: ''}
     this.onPress = this.onPress.bind(this)
     this.fetchNutritionalInfo = this.fetchNutritionalInfo.bind(this)
+    this.onPressHealthy = this.onPressHealthy.bind(this)
+    this.fetchByCategory = this.fetchByCategory.bind(this)
   }
+
+  async fetchByCategory(category) {
+    const data = await axios.get(`https://trackapi.nutritionix.com//v2/search/instant?query=${category}`,
+        { headers: { 'x-app-id': '05209a10', 'x-app-key': 'ed8f2147c7d313a1a88bc4ca30ec0848', 'x-remote-user-id': 0 } }
+    )
+    this.setState({ allUnhealthy: data.data.common })
+}
 
   onPress (event) {
     event.preventDefault()
-    alert(`Fetching Nutritional Info`)
-    //console.log('*****', this.state)
-    this.fetchNutritionalInfo(this.state.food)
+    this.fetchNutritionalInfo(this.state.food, false)
   }
 
   onPressHealthy (event) {
     event.preventDefault()
-    alert(`Suggesting Healthy Alternative`)
-    //console.log('*****', this.state)
-    //this.fetchNutritionalInfo(this.state.food)
+    let healthData = {
+      'cheese': 'Cottage Cheese',
+      'dessert': 'Oatmeal Raisin Cookie',
+      'soda': 'Oat Milk',
+      'meats': 'baked chicken'
+    }
+    let healthyAlt = healthData[`${this.state.category}`]
+    this.fetchNutritionalInfo(healthyAlt, true)
   }
-
-  async fetchNutritionalInfo (food) {
+ 
+  async fetchNutritionalInfo (food, isHealthy) {
     const { data } = await axios.post('https://trackapi.nutritionix.com/v2/natural/nutrients', {'query': food}, {headers: {'x-app-id': '05209a10', 'x-app-key':  'ed8f2147c7d313a1a88bc4ca30ec0848', 'x-remote-user-id': 0}})
-    //console.log('RESPONSE: ', data)
-    this.setState({...this.state, nutritionalInfo: data.foods[0]})
-    console.log('NUTRITION INFO FROM API: ', this.state.nutritionalInfo)
-    this.renderNutrionalInfo()
+    if (!isHealthy) {
+      this.setState({ nutritionalInfo: data.foods[0] })
+    } else {
+      this.setState({ healthyAltInfo: data.foods[0] })
+    }
   }
 
-  renderNutrionalInfo () {
-    console.log("DID THIS GET CALLED", this.state.nutritionalInfo)
-    console.log('TYPE OF: ', typeof(this.state.nutritionalInfo), this.state.nutritionalInfo.food_name, this.state.food)
-    if(this.state.nutritionalInfo.nf_calories) {
-      console.log('is this truthy')
+  renderFoodInfo(foodInfo, isUnhealthy) {
+    if (foodInfo.nf_calories) {
         return (
-          <View>
-          <Text>
-            You are craving: {this.state.nutritionalInfo.food_name}
-            Total Calories: {this.state.nutritionalInfo.nf_calories}
-            Sodium: {this.state.nutritionalInfo.nf_sodium}
-            Sugars: {this.state.nutritionalInfo.nf_sugars}
-            Potassium: {this.state.nutritionalInfo.nf_potassium}
-          </Text>
+            <View style={styles.nutrientContainer}>
+            <View style={styles.sectionContainer}>
+              <View style={styles.nutrientContainer}>
+                    {isUnhealthy ? <View style={styles.headerNutrientText}><Text style={styles.regularText}>you are craving: {foodInfo.food_name} </Text></View> : 
+                                    <View style={styles.headerNutrientText}><Text style={styles.regularText}>How about this instead? {foodInfo.food_name}</Text></View>}
+            <View style={styles.table}>                        
+            <Text> Total Calories: {foodInfo.nf_calories}</Text>
+            <Text>Sodium: {foodInfo.nf_sodium}</Text>
+            <Text>Sugars: {foodInfo.nf_sugars}</Text>
+            <Text>Potassium: {foodInfo.nf_potassium}</Text>
+            </View>
+              </View>
 
-          <Button
-            title="Healthier Alternative" 
-            onPress={this.onPressHealthy}
-          />
-          </View>
+
+                {isUnhealthy ? <View style={styles.spacingTwo}><Button
+                    title="get me a healthier alternative"
+                    onPress={this.onPressHealthy}
+                    titleStyle={{
+                      color: 'white',
+                      fontSize: 15,
+                      lineHeight: 15,
+                      fontFamily: 'Avenir-Book',
+                    }}
+                    buttonStyle={{
+                      backgroundColor: '#bac4b9',
+                      borderRadius: 20,
+                      height: 35,
+                      width: 250,
+                      justifyContent: 'center',
+                      alignSelf: 'center',
+                      marginTop: 10,
+                      borderWidth: 0.5,
+                      borderColor: '#bac4b9'
+                    }}
+                /></View> : null}
+            </View>
+            </View>
         )
-      }
-  }
+    }
+}
+
 
   render() {
-
-    //console.log('*****', this.state)
-  let data = [{value: 'French Fries'}, {value: 'Chocolate Cake'}, {value: 'Pie'}, {value: 'Chicken Wings'}]
-
+  let categoryData = [{ value: 'cheese' }, { value: 'soda' }, { value: 'dessert' }, { value: 'meats' }] 
     return (
+      
       <View style={styles.container}>
-        <ScrollView style={styles.container} contentContainerStyle={styles.contentContainer}>
-          <View style={styles.welcomeContainer}>
-            <Image
-              source={
-                __DEV__
-                  ? require('../assets/images/veggies.png')
-                  : require('../assets/images/veggies.png')
-              }
-              style={styles.welcomeImage}
-            />
-          </View>
-  
-          <View style={styles.getStartedContainer}>
-            <DevelopmentModeNotice />
-  
-            <Text style={styles.getStartedText}>Make Healthy Choices!</Text>
-  
-            <View style={[styles.codeHighlightContainer, styles.homeScreenFilename]}>
-              {/* <MonoText>screens/HomeScreen.js</MonoText> */}
-            </View>
-  
-            <Text style={styles.getStartedText}>
-              Select your craving below
-            </Text>
+      <ImageBackground
+        source={require('../assets/images/180501-OWMK6L-71.jpg')}
+              style={styles.image}
+      >
+      <ScrollView>
+              
+              <View style={styles.headerTextContainer}>
+              <Text style={styles.headerText}>MAKE HEALTHIER CHOICES</Text>
+              </View>
 
-            {/* <View>
-              <TextInput 
-                style={{height: 40}}
-                placeholder="Type here!"
-                onChangeText={(food) => this.setState({food})}
-                value={this.state.food}
-              />
-            </View> */}
-{/* 
-            <Dropdown 
-              label='Cravings'
-              data={data}
-            /> */}
+              <View style={styles.sectionContainer}>
+              <Text style={styles.regularText}>what kind of food are you craving?</Text>
+              
+              {/* 1st DROPDOWN: Maps through the category array, populating first dropdown with categories. Selected option is put into Category state */}
+              
+              <View style={styles.dropdownsContainer}>
+              <Picker
+                    itemStyle={styles.dropdowns}
+                    onValueChange={(itemValue) => {
+                        this.setState({ food: '', nutritionalInfo: [], healthyAltInfo: [], allUnhealthy: [], category: itemValue })
+                    }}
+                    selectedValue={this.state.category}
+                >
+                    <Picker.Item label='pick a category' value='' />
+                    {categoryData.map((category, index) => {
+                        return (<Picker.Item key={index} label={category.value} value={category.value} />)
+                    })}
+                </Picker>
+                </View>
+                
 
-            <Picker
-              onValueChange={(itemValue, index) => {
-                //console.log('???', this.state.food)
-                this.setState({...this.state, food: itemValue})
-              }}
-            >
+                {/* onPress calls fetchByCategory, which makes GET request to retrieve all foods in that category. allUnhealthy state array updated with products retrieved */}
+                <View style={styles.spacing}>
+                <Button
+                    title="find foods in this category"
+                    onPress={() => { this.fetchByCategory(this.state.category) }}
+                    titleStyle={{
+                      color: 'white',
+                      fontSize: 15,
+                      lineHeight: 15,
+                      fontFamily: 'Avenir-Book',
+                      justifyContent: 'center'
+                    }}
+                    buttonStyle={{
+                      backgroundColor: '#bac4b9',
+                      borderRadius: 20,
+                      height: 35,
+                      width: 250,
+                      justifyContent: 'center',
+                      alignSelf: 'center',
+                      marginTop: 10,
+                      borderWidth: 0.5,
+                      borderColor: '#bac4b9'
+                    }}
+                    disabled={this.state.category.length < 1}
+                />
+                </View>
+                </View>
 
-              {data.map((food, index) => {
-                return (<Picker.Item key={index} label={food.value} value={food.value} />)
-              })}
-            </Picker>
-            
-            <View styles={styles.container}>
-              <Post />
-            </View>
+                {/* 2nd DROPDOWN: Maps through allUnhealthy (products in category) array and lists them out in dropdown. Selected product gets added to Food state*/}
+                {/* onPress calls onPress function, which calls the fetchNutritionalInfo function  */}
 
-            <Button
-              title="What's the Damage" 
-              onPress={this.onPress}
-            />
+                {this.state.allUnhealthy.length > 0 ?
+                    <View style={styles.sectionContainer}>
+                    <Text style={styles.regularText}>have a look at all the foods in this category!</Text>
+                        <View style={styles.dropdownsContainer}>
+                        <Picker
+                            itemStyle={styles.dropdowns}
+                            onValueChange={(itemValue, index) => {
+                                this.setState({ ...this.state, food: itemValue })
+                            }}
+                            selectedValue={this.state.food}
+                        >
+                            <Picker.Item label='Select a specific item' value='' />
+                            {this.state.allUnhealthy.map((food, index) => {
+                                return (<Picker.Item key={index} label={food.food_name} value={food.food_name} />)
+                            })}
+                        </Picker>
+                        </View>
 
-            <Text>{this.renderNutrionalInfo()}</Text>
+                        <View style={styles.spacingTwo}>    
+                        <Button
+                            title="what's the damage?"
+                            onPress={this.onPress}
+                            titleStyle={{
+                      color: 'white',
+                      fontSize: 15,
+                      lineHeight: 15,
+                      fontFamily: 'Avenir-Book',
+                    }}
+                    buttonStyle={{
+                      backgroundColor: '#bac4b9',
+                      borderRadius: 20,
+                      height: 35,
+                      width: 250,
+                      justifyContent: 'center',
+                      alignSelf: 'center',
+                      marginTop: 10,
+                      borderWidth: 0.5,
+                      borderColor: '#bac4b9'
+                    }}
+                    disabled={this.state.food.length < 1}
+                        />
+                        </View>
+                    </View>
+                    : null}
 
-          </View>
-  
-          {/* <View style={styles.helpContainer}>
-            <TouchableOpacity onPress={handleHelpPress} style={styles.helpLink}>
-              <Text style={styles.helpLinkText}>Help, it didn’t automatically reload!</Text>
-            </TouchableOpacity>
-          </View> */}
-        </ScrollView>
-  
-        {/* <View style={styles.tabBarInfoContainer}>
-          <Text style={styles.tabBarInfoText}>This is a tab bar. You can edit it in:</Text>
-  
-          <View style={[styles.codeHighlightContainer, styles.navigationFilename]}>
-            <MonoText style={styles.codeHighlightText}>navigation/BottomTabNavigator.js</MonoText>
-          </View>
-        </View> */}
+
+                {this.renderFoodInfo(this.state.nutritionalInfo, true)}
+
+                {this.renderFoodInfo(this.state.healthyAltInfo, false)}
+      </ScrollView>
+      </ImageBackground>
       </View>
+      
     );
   }
 }
-
-HomeScreen.navigationOptions = {
-  header: null,
-};
-
-function DevelopmentModeNotice() {
-  if (__DEV__) {
-    const learnMoreButton = (
-      <Text onPress={handleLearnMorePress} style={styles.helpLinkText}>
-        Learn more 
-      </Text>
-    );
-
-    return (
-      <Text style={styles.developmentModeText}>
-        Development mode is enabled: your app will be slower but you can use useful development
-        tools. {learnMoreButton}
-      </Text>
-    );
-  } else {
-    return (
-      <Text style={styles.developmentModeText}>
-        You are not in development mode: your app will run at full speed.
-      </Text>
-    );
-  }
-}
-
-function handleLearnMorePress() {
-  WebBrowser.openBrowserAsync('https://docs.expo.io/versions/latest/workflow/development-mode/');
-}
-
-function handleHelpPress() {
-  WebBrowser.openBrowserAsync(
-    'https://docs.expo.io/versions/latest/get-started/create-a-new-app/#making-your-first-change'
-  );
-}
+const height = Dimensions.get('window').height;
+const width = Dimensions.get('window').width;
 
 const styles = StyleSheet.create({
   container: {
-    marginTop: 30,
+    height: height,
+    width: width,
+    alignItems: 'center',
+  },
+  image: {
     flex: 1,
-    backgroundColor: 'aquamarine',
-  },
-  developmentModeText: {
-    marginBottom: 20,
-    color: 'rgba(0,0,0,0.4)',
-    fontSize: 14,
-    lineHeight: 19,
-    textAlign: 'center',
-  },
-  contentContainer: {
-    paddingTop: 30,
-  },
-  welcomeContainer: {
+    width: width,
+    height: height,
+    justifyContent: 'flex-start',
     alignItems: 'center',
+    opacity: 1.0,
+  },
+  headerTextContainer: {
+    marginTop: 35,
+    alignItems: 'center',
+    padding: 10,
+    borderBottomColor: 'grey',
+    borderBottomWidth: 0.5,
+  },
+  headerText: {
+    fontSize: 20,
+    color: 'grey',
+    fontFamily: 'HelveticaNeue-Medium'
+  },
+  sectionContainer: {
+    alignItems: 'center',
+    marginTop: 25,
+    paddingTop: 10
+  },
+  regularText: {
+    fontSize: 14
+  },
+  dropdownsContainer: {
+    alignItems: 'center'
+  },
+  dropdowns: {
+    width: 150,
+    height: 50,
+    fontSize: 14
+  },
+  nutrientContainer: {
+    alignItems: 'center',
+  },
+  headerNutrientText: {
+    alignItems: 'center',
+  },
+  table: {
+    borderWidth: 1,
+    padding: 5,
+    borderColor: 'grey',
     marginTop: 10,
-    marginBottom: 20,
-  },
-  welcomeImage: {
-    width: 100,
-    height: 80,
-    resizeMode: 'contain',
-    marginTop: 3,
-    marginLeft: -10,
-  },
-  getStartedContainer: {
-    alignItems: 'center',
-    marginHorizontal: 50,
-  },
-  homeScreenFilename: {
-    marginVertical: 7,
-  },
-  codeHighlightText: {
-    color: 'rgba(96,100,109, 0.8)',
-  },
-  codeHighlightContainer: {
-    backgroundColor: 'rgba(0,0,0,0.05)',
-    borderRadius: 3,
-    paddingHorizontal: 4,
-  },
-  getStartedText: {
-    fontSize: 17,
-    color: 'rgba(96,100,109, 1)',
-    lineHeight: 24,
-    textAlign: 'center',
-  },
-  tabBarInfoContainer: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    ...Platform.select({
-      ios: {
-        shadowColor: 'black',
-        shadowOffset: { width: 0, height: -3 },
-        shadowOpacity: 0.1,
-        shadowRadius: 3,
-      },
-      android: {
-        elevation: 20,
-      },
-    }),
-    alignItems: 'center',
-    backgroundColor: '#fbfbfb',
-    paddingVertical: 20,
-  },
-  tabBarInfoText: {
-    fontSize: 17,
-    color: 'rgba(96,100,109, 1)',
-    textAlign: 'center',
-  },
-  navigationFilename: {
-    marginTop: 5,
-  },
-  helpContainer: {
-    marginTop: 15,
-    alignItems: 'center',
-  },
-  helpLink: {
-    paddingVertical: 15,
-  },
-  helpLinkText: {
-    fontSize: 14,
-    color: '#2e78b7',
-  },
+    marginLeft: 50,
+    marginRight: 50,
+    alignItems: 'center'
+},
+food: {
+    fontSize: 16,
+    paddingBottom: 5,
+},
 });
+
