@@ -3,6 +3,6 @@ Make Healthy Choices is a native mobile application that provides you with quick
 
 This app was built in React-Native (with Expo) and uses the third-party API Nutritionix.
 
-App Screens:
-![App Screenshot 1](https://raw.githubusercontent.com/nesarazui/stackathon-project-make-healthy-choices/master/App_Screenshot_1.png =25x)
-![App Screenshot 2](https://raw.githubusercontent.com/nesarazui/stackathon-project-make-healthy-choices/master/App_Screenshot_2.png =25x)
+App Screens:  
+![App Screenshot 1](https://raw.githubusercontent.com/nesarazui/stackathon-project-make-healthy-choices/master/App_Screenshot_1.png =20x)  
+![App Screenshot 2](https://raw.githubusercontent.com/nesarazui/stackathon-project-make-healthy-choices/master/App_Screenshot_2.png =20x)  
